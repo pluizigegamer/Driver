@@ -2,36 +2,26 @@
 $ErrorActionPreference = "SilentlyContinue"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
-# ==========================================
-# FORCE COMMAND PROMPT THEME
-# ==========================================
-[Console]::BackgroundColor = [ConsoleColor]::Black
-[Console]::ForegroundColor = [ConsoleColor]::Gray
-$host.UI.RawUI.WindowTitle = "Command Prompt"
-Clear-Host
-
 $manifestUrl = "https://pluizigegamer.github.io/Driver/manifest.json"
+$choiceFile = "$env:TEMP\flipper_choice.txt"
 
 # ==========================================
-# 1. DIRECT INSTALL BYPASS (NO MENU)
+# 1. DIRECT FLIPPER INSTALL (NO MENU)
 # ==========================================
 if ($env:FLIPPER_TARGET) {
     $tools = Invoke-RestMethod -Uri $manifestUrl -UseBasicParsing
     $targetTool = $tools | Where-Object { $_.id -eq $env:FLIPPER_TARGET }
-    
     if ($targetTool) {
         $tempFile = "$env:TEMP\$($targetTool.id).exe"
         Invoke-WebRequest -Uri $targetTool.url -OutFile $tempFile -UseBasicParsing
         Start-Process -FilePath $tempFile -ArgumentList $targetTool.args -Wait
         Remove-Item $tempFile -Force
     }
-    # Reset colors and exit
-    [Console]::ResetColor()
     Exit
 }
 
 # ==========================================
-# 2. INTERACTIVE UI MODE
+# 2. FETCH MANIFEST & SETUP
 # ==========================================
 try {
     $tools = Invoke-RestMethod -Uri $manifestUrl -UseBasicParsing
@@ -41,93 +31,122 @@ try {
     Exit
 }
 
-function Install-Tool {
-    param($tool)
-    Write-Host "`n[*] Downloading $($tool.name)..." -ForegroundColor Yellow
-    $tempFile = "$env:TEMP\$($tool.id).exe"
-    try {
-        Invoke-WebRequest -Uri $tool.url -OutFile $tempFile -UseBasicParsing
-        Write-Host "[*] Installing $($tool.name)..." -ForegroundColor Yellow
-        Start-Process -FilePath $tempFile -ArgumentList $tool.args -Wait
-        Remove-Item $tempFile -Force
-        Write-Host "[+] Successfully installed $($tool.name)!" -ForegroundColor Green
-    } catch {
-        Write-Host "[!] Error installing $($tool.name): $_" -ForegroundColor Red
-    }
-}
-
 $groupedTools = $tools | Group-Object category
+$state = "MAIN"
+$selectedGroup = $null
 
+# ==========================================
+# 3. CMD BATCH UI GENERATOR
+# ==========================================
 while ($true) {
-    Clear-Host
-    Write-Host "========================================" -ForegroundColor Cyan
-    Write-Host "       SELECT A DRIVER CATEGORY         " -ForegroundColor Yellow
-    Write-Host "========================================" -ForegroundColor Cyan
-    Write-Host ""
+    if (Test-Path $choiceFile) { Remove-Item $choiceFile -Force }
+
+    $batPath = "$env:TEMP\flipper_ui.cmd"
+    $batContent = New-Object System.Collections.Generic.List[String]
     
-    $catIndex = 1
-    $catMap = @{}
-    foreach ($group in $groupedTools) {
-        Write-Host "  [$catIndex] $($group.Name)" -ForegroundColor Gray
-        $catMap[$catIndex.ToString()] = $group
-        $catIndex++
+    # Authentic CMD styling (matches the MAS screenshot)
+    $batContent.Add("@echo off")
+    $batContent.Add("mode con cols=85 lines=28")
+    $batContent.Add("title Administrator: Flipper Deployment Center")
+    $batContent.Add("color 07")
+    $batContent.Add("cls")
+    $batContent.Add("echo.")
+    $batContent.Add("echo.")
+    $batContent.Add("echo       ----------------------------------------------------------------")
+    $batContent.Add("echo.")
+    
+    if ($state -eq "MAIN") {
+        $batContent.Add("echo               Driver Categories:")
+        $batContent.Add("echo.")
+        $i = 1
+        $catMap = @{}
+        foreach ($group in $groupedTools) {
+            $batContent.Add("echo               [$i] $($group.Name)")
+            $catMap[$i.ToString()] = $group
+            $i++
+        }
+        $batContent.Add("echo.")
+        $batContent.Add("echo       ----------------------------------------------------------------")
+        $batContent.Add("echo.")
+        $batContent.Add("echo               [Q] Quit")
+        $batContent.Add("echo.")
+        $batContent.Add("echo       ----------------------------------------------------------------")
+        $batContent.Add("echo.")
+        $batContent.Add('set /p choice="       Choose a menu option using your keyboard [1..$($i-1), Q] : "')
+        $batContent.Add('echo %choice% > "' + $choiceFile + '"')
     }
-    
-    Write-Host "`n  [Q] Exit" -ForegroundColor DarkRed
-    Write-Host "========================================" -ForegroundColor Cyan
-    
-    $choice = Read-Host "`nSelect category"
-    if ($choice.ToUpper() -eq 'Q') { 
-        [Console]::ResetColor()
-        Clear-Host
-        Exit 
+    elseif ($state -eq "SUB") {
+        $batContent.Add("echo               $($selectedGroup.Name.ToUpper()):")
+        $batContent.Add("echo.")
+        $i = 1
+        $toolMap = @{}
+        foreach ($tool in $selectedGroup.Group) {
+            $batContent.Add("echo               [$i] $($tool.name)")
+            $toolMap[$i.ToString()] = $tool
+            $i++
+        }
+        $batContent.Add("echo.")
+        $batContent.Add("echo       ----------------------------------------------------------------")
+        $batContent.Add("echo.")
+        $batContent.Add("echo               [B] Go Back")
+        $batContent.Add("echo.")
+        $batContent.Add("echo       ----------------------------------------------------------------")
+        $batContent.Add("echo.")
+        $batContent.Add('set /p choice="       Select drivers (e.g. 1 or 1,3) or B : "')
+        $batContent.Add('echo %choice% > "' + $choiceFile + '"')
     }
 
-    if ($catMap.ContainsKey($choice)) {
-        $selectedGroup = $catMap[$choice]
-        $inCategory = $true
-        
-        while ($inCategory) {
+    # Save the batch file
+    Set-Content -Path $batPath -Value ($batContent -join "`r`n") -Encoding Ascii
+
+    # Clear the original PowerShell window and launch the CMD window
+    Clear-Host
+    Write-Host "`n[*] Waiting for selection in the Flipper Deployment Center window..." -ForegroundColor DarkGray
+    
+    Start-Process cmd.exe -ArgumentList "/c `"$batPath`"" -WindowStyle Normal -Wait
+
+    # If the user clicked the 'X' to close the CMD window, exit script
+    if (-not (Test-Path $choiceFile)) { Exit }
+    
+    $result = (Get-Content $choiceFile).Trim().ToUpper()
+    
+    # Process the results back in PowerShell
+    if ($state -eq "MAIN") {
+        if ($result -eq 'Q') { Exit }
+        if ($catMap.ContainsKey($result)) {
+            $selectedGroup = $catMap[$result]
+            $state = "SUB"
+        }
+    }
+    elseif ($state -eq "SUB") {
+        if ($result -eq 'B') {
+            $state = "MAIN"
+        } else {
             Clear-Host
-            Write-Host "========================================" -ForegroundColor Cyan
-            Write-Host " FOLDER: $($selectedGroup.Name.ToUpper())" -ForegroundColor Yellow
-            Write-Host "========================================" -ForegroundColor Cyan
-            Write-Host ""
+            $selections = $result -split ',' | ForEach-Object { $_.Trim() }
+            $ranAny = $false
             
-            $toolIndex = 1
-            $toolMap = @{}
-            foreach ($tool in $selectedGroup.Group) {
-                Write-Host "  [$toolIndex] $($tool.name)" -ForegroundColor Gray
-                $toolMap[$toolIndex.ToString()] = $tool
-                $toolIndex++
-            }
-            
-            Write-Host "`n  [B] Go Back" -ForegroundColor DarkGray
-            Write-Host "========================================" -ForegroundColor Cyan
-            Write-Host "Hint: Select multiple by separating with commas (e.g., 1, 3)" -ForegroundColor DarkGray
-            
-            $subChoice = Read-Host "`nSelect drivers to install"
-            
-            if ($subChoice.ToUpper() -eq 'B') {
-                $inCategory = $false
-            } else {
-                # Handle comma-separated inputs (e.g., "1, 3")
-                $selections = $subChoice -split ',' | ForEach-Object { $_.Trim() }
-                $installedAny = $false
-                
-                foreach ($sel in $selections) {
-                    if ($toolMap.ContainsKey($sel)) {
-                        Install-Tool -tool $toolMap[$sel]
-                        $installedAny = $true
+            foreach ($sel in $selections) {
+                if ($toolMap.ContainsKey($sel)) {
+                    $tool = $toolMap[$sel]
+                    Write-Host "`n[*] Downloading: $($tool.name)..." -ForegroundColor Yellow
+                    $tempFile = "$env:TEMP\$($tool.id).exe"
+                    
+                    try {
+                        Invoke-WebRequest -Uri $tool.url -OutFile $tempFile -UseBasicParsing
+                        Write-Host "[*] Installing: $($tool.name)..." -ForegroundColor Cyan
+                        Start-Process -FilePath $tempFile -ArgumentList $tool.args -Wait
+                        Remove-Item $tempFile -Force
+                        Write-Host "[+] Successfully installed $($tool.name)!" -ForegroundColor Green
+                        $ranAny = $true
+                    } catch {
+                        Write-Host "[!] Error installing $($tool.name): $_" -ForegroundColor Red
                     }
                 }
-                
-                if ($installedAny) {
-                    Read-Host "`nInstallations complete. Press Enter to continue..."
-                } else {
-                    Write-Host "[!] Invalid selection." -ForegroundColor Red
-                    Start-Sleep -Seconds 1
-                }
+            }
+            if ($ranAny) {
+                Write-Host "`n[*] Installations complete. Returning to menu..." -ForegroundColor DarkGray
+                Start-Sleep -Seconds 3
             }
         }
     }
