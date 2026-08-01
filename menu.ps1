@@ -38,18 +38,18 @@ if ($env:FLIPPER_TARGET) {
 $groupedTools = $tools | Group-Object category
 $state = "MAIN"
 $selectedGroup = $null
+$basket = [System.Collections.Generic.List[PSCustomObject]]::new()
 
 # ==========================================
-# 2. DUAL-TERMINAL ENGINE LOOP
+# 2. DUAL-TERMINAL BASKET ENGINE LOOP
 # ==========================================
 while ($true) {
     if (Test-Path $choiceFile) { Remove-Item $choiceFile -Force }
 
-    # Dynamically build the true CMD Batch file for the menu window
     $batContent = New-Object System.Collections.Generic.List[String]
     $batContent.Add("@echo off")
-    $batContent.Add("mode con cols=80 lines=25")
-    $batContent.Add("title Administrator: Flipper Deployment Center")
+    $batContent.Add("mode con cols=80 lines=29")
+    $batContent.Add("title Administrator: Flipper Deployment Center [Basket Items: $($basket.Count)]")
     $batContent.Add("color 07")
     $batContent.Add("cls")
     $batContent.Add("echo.")
@@ -68,46 +68,71 @@ while ($true) {
         }
         $batContent.Add("echo.")
         $batContent.Add("echo       ----------------------------------------------------------------")
-        $batContent.Add("echo.")
+        $batContent.Add("echo               Basket: $($basket.Count) driver(s) selected")
+        $batContent.Add("echo       ----------------------------------------------------------------")
+        $batContent.Add("echo               [C] Checkout / View Basket")
         $batContent.Add("echo               [Q] Quit")
         $batContent.Add("echo.")
         $batContent.Add("echo       ----------------------------------------------------------------")
         $batContent.Add("echo.")
-        $batContent.Add('set /p choice="       Choose a menu option using your keyboard [1..' + ($i-1) + ', Q] : "')
+        $batContent.Add('set /p choice="       Choose option [1..' + ($i-1) + ', C, Q] : "')
         $batContent.Add('echo %choice% > "' + $choiceFile + '"')
     } 
     elseif ($state -eq "SUB") {
-        $batContent.Add("echo               $($selectedGroup.Name.ToUpper()):")
+        $batContent.Add("echo               Category: $($selectedGroup.Name.ToUpper())")
         $batContent.Add("echo.")
         $i = 1
         foreach ($tool in $selectedGroup.Group) {
-            $batContent.Add("echo               [$i] $($tool.name)")
+            $inBasket = $basket | Where-Object { $_.id -eq $tool.id }
+            $tag = if ($inBasket) { " [IN BASKET]" } else { "" }
+            $batContent.Add("echo               [$i] $($tool.name)$tag")
             $i++
         }
         $batContent.Add("echo.")
         $batContent.Add("echo       ----------------------------------------------------------------")
-        $batContent.Add("echo.")
-        $batContent.Add("echo               [B] Go Back")
+        $batContent.Add("echo               [B] Back to Categories")
         $batContent.Add("echo.")
         $batContent.Add("echo       ----------------------------------------------------------------")
         $batContent.Add("echo.")
-        $batContent.Add('set /p choice="       Select drivers (e.g. 1 or 1,3) or B : "')
+        $batContent.Add('set /p choice="       Add to basket (e.g. 1 or 1,2) or B : "')
+        $batContent.Add('echo %choice% > "' + $choiceFile + '"')
+    }
+    elseif ($state -eq "CART") {
+        $batContent.Add("echo               Shopping Basket Checkout:")
+        $batContent.Add("echo.")
+        if ($basket.Count -eq 0) {
+            $batContent.Add("echo               Your basket is currently empty!")
+        } else {
+            $ci = 1
+            foreach ($item in $basket) {
+                $batContent.Add("echo               [$ci] $($item.name)")
+                $ci++
+            }
+        }
+        $batContent.Add("echo.")
+        $batContent.Add("echo       ----------------------------------------------------------------")
+        $batContent.Add("echo               [I] Install All Basket Items Now")
+        $batContent.Add("echo               [CLEAR] Clear Basket")
+        $batContent.Add("echo               [B] Back to Categories")
+        $batContent.Add("echo.")
+        $batContent.Add("echo       ----------------------------------------------------------------")
+        $batContent.Add("echo.")
+        $batContent.Add('set /p choice="       Select action [I, CLEAR, B] : "')
         $batContent.Add('echo %choice% > "' + $choiceFile + '"')
     }
 
     Set-Content -Path $batPath -Value ($batContent -join "`r`n") -Encoding Ascii
 
-    # Clear PowerShell window and prepare it to catch downloads
+    # Clear PowerShell window and prepare it to catch actions
     Clear-Host
     Write-Host "`n==================================================================" -ForegroundColor DarkGray
     Write-Host " WORKER TERMINAL (PowerShell) - Download & Install logs show here" -ForegroundColor Yellow
     Write-Host "==================================================================" -ForegroundColor DarkGray
-    Write-Host "[*] Interactive menu launched in a separate CMD window..." -ForegroundColor Cyan
+    Write-Host "[*] Active Basket Items: $($basket.Count)" -ForegroundColor Cyan
+    Write-Host "[*] Menu running in separate CMD window..." -ForegroundColor DarkGray
 
-    # Launch Terminal 2 (CMD) and pause PowerShell until a choice is made
     Start-Process cmd.exe -ArgumentList "/c `"$batPath`"" -WindowStyle Normal -Wait
 
-    # If the user closed the CMD window without picking anything, exit script
     if (-not (Test-Path $choiceFile)) {
         Write-Host "`n[*] Menu closed. Exiting..." -ForegroundColor DarkGray
         Exit
@@ -120,38 +145,63 @@ while ($true) {
             Write-Host "`n[*] Exiting..." -ForegroundColor Cyan
             Exit
         }
-        
-        $i = 1
-        $catMap = @{}
-        foreach ($group in $groupedTools) {
-            $catMap[$i.ToString()] = $group
-            $i++
+        elseif ($result -eq 'C') {
+            $state = "CART"
         }
-
-        if ($catMap.ContainsKey($result)) {
-            $selectedGroup = $catMap[$result]
-            $state = "SUB"
+        else {
+            $i = 1
+            $catMap = @{}
+            foreach ($group in $groupedTools) {
+                $catMap[$i.ToString()] = $group
+                $i++
+            }
+            if ($catMap.ContainsKey($result)) {
+                $selectedGroup = $catMap[$result]
+                $state = "SUB"
+            }
         }
     } 
     elseif ($state -eq "SUB") {
         if ($result -eq 'B') {
             $state = "MAIN"
         } else {
-            $i = 1
             $toolMap = @{}
+            $i = 1
             foreach ($tool in $selectedGroup.Group) {
                 $toolMap[$i.ToString()] = $tool
                 $i++
             }
 
             $selections = $result -split ',' | ForEach-Object { $_.Trim() }
-            $executedAny = $false
-
             foreach ($sel in $selections) {
                 if ($toolMap.ContainsKey($sel)) {
                     $tool = $toolMap[$sel]
-                    Write-Host "`n------------------------------------------------------------------" -ForegroundColor DarkGray
-                    Write-Host "[*] Downloading: $($tool.name)..." -ForegroundColor Yellow
+                    if (-not ($basket | Where-Object { $_.id -eq $tool.id })) {
+                        $basket.Add($tool)
+                        Write-Host "[+] Added to basket: $($tool.name)" -ForegroundColor Green
+                    } else {
+                        Write-Host "[*] Already in basket: $($tool.name)" -ForegroundColor DarkYellow
+                    }
+                }
+            }
+        }
+    }
+    elseif ($state -eq "CART") {
+        if ($result -eq 'B') {
+            $state = "MAIN"
+        }
+        elseif ($result -eq 'CLEAR') {
+            $basket.Clear()
+            Write-Host "[-] Basket cleared." -ForegroundColor Red
+            $state = "MAIN"
+        }
+        elseif ($result -eq 'I') {
+            if ($basket.Count -gt 0) {
+                Write-Host "`n------------------------------------------------------------------" -ForegroundColor DarkGray
+                Write-Host "[*] Starting batch installation of $($basket.Count) items..." -ForegroundColor Yellow
+                
+                foreach ($tool in $basket) {
+                    Write-Host "`n[*] Downloading: $($tool.name)..." -ForegroundColor Yellow
                     $tempFile = "$env:TEMP\$($tool.id).exe"
                     
                     try {
@@ -160,16 +210,15 @@ while ($true) {
                         Start-Process -FilePath $tempFile -ArgumentList $tool.args -Wait
                         Remove-Item $tempFile -Force
                         Write-Host "[+] Successfully installed $($tool.name)!" -ForegroundColor Green
-                        $executedAny = $true
                     } catch {
                         Write-Host "[!] Error installing $($tool.name): $_" -ForegroundColor Red
                     }
                 }
-            }
 
-            if ($executedAny) {
-                Write-Host "`n[+] Tasks completed. Returning to menu..." -ForegroundColor Green
-                Start-Sleep -Seconds 2
+                Write-Host "`n[+] All basket items processed! Clearing cart..." -ForegroundColor Green
+                $basket.Clear()
+                Start-Sleep -Seconds 3
+                $state = "MAIN"
             }
         }
     }
