@@ -1,23 +1,51 @@
-param(
-    [string]$TargetId
-)
-
 #Requires -RunAsAdministrator
 $ErrorActionPreference = "SilentlyContinue"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 $manifestUrl = "https://pluizigegamer.github.io/Driver/manifest.json"
+
+# ==========================================
+# 1. DIRECT INSTALL BYPASS (NO MENU)
+# ==========================================
+if ($env:FLIPPER_TARGET) {
+    $tools = Invoke-RestMethod -Uri $manifestUrl -UseBasicParsing
+    $targetTool = $tools | Where-Object { $_.id -eq $env:FLIPPER_TARGET }
+    
+    if ($targetTool) {
+        $tempFile = "$env:TEMP\$($targetTool.id).exe"
+        Invoke-WebRequest -Uri $targetTool.url -OutFile $tempFile -UseBasicParsing
+        Start-Process -FilePath $tempFile -ArgumentList $targetTool.args -Wait
+        Remove-Item $tempFile -Force
+    }
+    Exit # Close immediately after direct install
+}
+
+# ==========================================
+# 2. SPAWN SEPARATE TERMINAL WINDOW
+# ==========================================
+if ($env:FLIPPER_UI -ne '1') {
+    # We are in the initial window. Spawn a new one and exit this one.
+    $spawnCmd = "`$env:FLIPPER_UI='1'; irm https://pluizigegamer.github.io/Driver/menu.ps1 | iex"
+    Start-Process powershell -ArgumentList "-NoProfile -WindowStyle Normal -Command `"$spawnCmd`""
+    Exit 
+}
+
+# ==========================================
+# 3. INTERACTIVE UI MODE
+# ==========================================
+$host.UI.RawUI.WindowTitle = "Flipper Remote Deployment Center"
+
 try {
     $tools = Invoke-RestMethod -Uri $manifestUrl -UseBasicParsing
 } catch {
     Write-Host "[!] Failed to fetch configuration manifest from GitHub." -ForegroundColor Red
-    if (-not $TargetId) { Start-Sleep -Seconds 3 }
+    Start-Sleep -Seconds 3
     Exit
 }
 
 function Install-Tool {
     param($tool)
-    Write-Host "[*] Downloading $($tool.name)..." -ForegroundColor Yellow
+    Write-Host "`n[*] Downloading $($tool.name)..." -ForegroundColor Yellow
     $tempFile = "$env:TEMP\$($tool.id).exe"
     try {
         Invoke-WebRequest -Uri $tool.url -OutFile $tempFile -UseBasicParsing
@@ -30,63 +58,75 @@ function Install-Tool {
     }
 }
 
-# DIRECT FLIPPER INSTALL MODE (e.g., menu.ps1 -TargetId nvidia)
-if ($TargetId) {
-    $matched = $tools | Where-Object { $_.id -eq $TargetId }
-    if ($matched) {
-        Install-Tool -tool $matched
-    } else {
-        Write-Host "[!] Driver ID '$TargetId' not found in manifest." -ForegroundColor Red
-    }
-    Exit
-}
-
-# INTERACTIVE CENTERED TERMINAL UI MODE
-$host.UI.RawUI.WindowTitle = "Flipper Remote Deployment Center"
 $groupedTools = $tools | Group-Object category
 
-function Show-CenteredMenu {
+while ($true) {
     Clear-Host
-    $maxWidth = 60
-    $pad = [Math]::Max(0, [Math]::Floor((([Console]::WindowWidth - $maxWidth) / 2)))
-    $indent = " " * $pad
-
+    Write-Host "========================================" -ForegroundColor Cyan
+    Write-Host "       SELECT A DRIVER CATEGORY         " -ForegroundColor Yellow
+    Write-Host "========================================" -ForegroundColor Cyan
     Write-Host ""
-    Write-Host "$indent$([char]0x2554)$([char]0x2550 * ($maxWidth - 2))$([char]0x2557)" -ForegroundColor Cyan
-    Write-Host "$indent$([char]0x2551)          FLIPPER ZERO REMOTE DEPLOYMENT CENTER          $([char]0x2551)" -ForegroundColor Yellow
-    Write-Host "$indent$([char]0x2560)$([char]0x2550 * ($maxWidth - 2))$([char]0x2569)" -ForegroundColor Cyan
-
+    
+    $catIndex = 1
+    $catMap = @{}
     foreach ($group in $groupedTools) {
-        Write-Host ""
-        Write-Host "$indent  $($group.Name.ToUpper())" -ForegroundColor DarkCyan
-        Write-Host "$indent  $("-" * $($group.Name.Length + 2))" -ForegroundColor DarkGray
+        Write-Host "  [$catIndex] $($group.Name)" -ForegroundColor White
+        $catMap[$catIndex.ToString()] = $group
+        $catIndex++
+    }
+    
+    Write-Host "`n  [Q] Exit" -ForegroundColor Red
+    Write-Host "========================================" -ForegroundColor Cyan
+    
+    $choice = Read-Host "`nSelect category"
+    if ($choice.ToUpper() -eq 'Q') { Exit }
+
+    if ($catMap.ContainsKey($choice)) {
+        $selectedGroup = $catMap[$choice]
+        $inCategory = $true
         
-        foreach ($tool in $group.Group) {
-            $line = "   [$($tool.id)] $($tool.name)"
-            Write-Host "$indent$line" -ForegroundColor White
+        while ($inCategory) {
+            Clear-Host
+            Write-Host "========================================" -ForegroundColor Cyan
+            Write-Host " FOLDER: $($selectedGroup.Name.ToUpper())" -ForegroundColor Yellow
+            Write-Host "========================================" -ForegroundColor Cyan
+            Write-Host ""
+            
+            $toolIndex = 1
+            $toolMap = @{}
+            foreach ($tool in $selectedGroup.Group) {
+                Write-Host "  [$toolIndex] $($tool.name)" -ForegroundColor White
+                $toolMap[$toolIndex.ToString()] = $tool
+                $toolIndex++
+            }
+            
+            Write-Host "`n  [B] Go Back" -ForegroundColor DarkGray
+            Write-Host "========================================" -ForegroundColor Cyan
+            Write-Host "Hint: Select multiple by separating with commas (e.g., 1, 3)" -ForegroundColor DarkGray
+            
+            $subChoice = Read-Host "`nSelect drivers to install"
+            
+            if ($subChoice.ToUpper() -eq 'B') {
+                $inCategory = $false
+            } else {
+                # Handle comma-separated inputs (e.g., "1, 3")
+                $selections = $subChoice -split ',' | ForEach-Object { $_.Trim() }
+                $installedAny = $false
+                
+                foreach ($sel in $selections) {
+                    if ($toolMap.ContainsKey($sel)) {
+                        Install-Tool -tool $toolMap[$sel]
+                        $installedAny = $true
+                    }
+                }
+                
+                if ($installedAny) {
+                    Read-Host "`nInstallations complete. Press Enter to continue..."
+                } else {
+                    Write-Host "[!] Invalid selection." -ForegroundColor Red
+                    Start-Sleep -Seconds 1
+                }
+            }
         }
     }
-
-    Write-Host ""
-    Write-Host "$indent  [A] Install All Listed Tools" -ForegroundColor Green
-    Write-Host "$indent  [Q] Exit Terminal" -ForegroundColor Red
-    Write-Host ""
-    Write-Host "$indent$([char]0x255A)$([char]0x2550 * ($maxWidth - 2))$([char]0x2557)" -ForegroundColor Cyan
 }
-
-do {
-    Show-CenteredMenu
-    $choice = Read-Host "Select option ID"
-
-    if ($choice -eq 'Q') { Break }
-    if ($choice -eq 'A') {
-        foreach ($tool in $tools) { Install-Tool -tool $tool }
-        Read-Host "Batch complete. Press Enter to return..."
-    } else {
-        $selected = $tools | Where-Object { $_.id -eq $choice }
-        if ($selected) {
-            Install-Tool -tool $selected
-            Read-Host "Installation finished. Press Enter to return..."
-        }
-    }
-} while ($true)
