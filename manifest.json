@@ -9,7 +9,7 @@
   {
     "id": "7zip",
     "name": "7-Zip File Manager",
-    "category": "IO Drivers",
+    "category": "Tools",
     "url": "https://www.7-zip.org/a/7z2409-x64.exe",
     "args": "/S"
   },
