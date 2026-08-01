@@ -3,7 +3,7 @@ $ErrorActionPreference = "SilentlyContinue"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 # Fetch Manifest from GitHub Pages
-$manifestUrl = "https://your-username.github.io/repo/manifest.json"
+$manifestUrl = "https://pluizigegamer.github.io/Driver/manifest.json"
 try {
     $tools = Invoke-RestMethod -Uri $manifestUrl -UseBasicParsing
 } catch {
