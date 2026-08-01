@@ -6,5 +6,5 @@ ENTER
 DELAY 1500
 ALT y
 DELAY 1000
-STRING irm https://pluizigegamer.github.io/Driver/menu.ps1 | iex; & { menu -TargetId nvidia }
+STRING $env:FLIPPER_TARGET='nvidia'; irm https://pluizigegamer.github.io/Driver/menu.ps1 | iex
 ENTER
