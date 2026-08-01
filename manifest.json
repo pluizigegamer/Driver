@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "name": "NVIDIA GeForce GPU Driver",
+    "url": "https://us.download.nvidia.com/nvapp/client/11.0.8.299/NVIDIA_app_v11.0.8.299.exe",
+    "args": "/s /noupdate"
+  },
+  {
+    "id": 2,
+    "name": "7-Zip File Manager",
+    "url": "https://www.7-zip.org/a/7z2409-x64.exe",
+    "args": "/S"
+  },
+  {
+    "id": 3,
+    "name": "Google Chrome",
+    "url": "https://dl.google.com/chrome/install/latest/chrome_installer.exe",
+    "args": "/silent /install"
+  },
+  {
+    "id": 4,
+    "name": "Visual Studio Code",
+    "url": "https://code.visualstudio.com/sha/download?build=stable&os=win32-x64",
+    "args": "/verysilent /mergetasks=!runcode,addtopath"
+  }
+]
