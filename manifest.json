@@ -7,13 +7,6 @@
     "args": "/s /noupdate"
   },
   {
-    "id": "amd",
-    "name": "AMD Radeon GPU Driver",
-    "category": "GPU Drivers",
-    "url": "https://pluizigegamer.github.io/Driver/binaries/AmdDriver.exe",
-    "args": "/S"
-  },
-  {
     "id": "7zip",
     "name": "7-Zip File Manager",
     "category": "IO Drivers",
