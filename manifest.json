@@ -1,26 +1,23 @@
 [
   {
-    "id": 1,
+    "id": "nvidia",
     "name": "NVIDIA GeForce GPU Driver",
-    "url": "https://your-username.github.io/repo/binaries/NvidiaDriver.exe",
+    "category": "GPU Drivers",
+    "url": "https://pluizigegamer.github.io/Driver/binaries/NvidiaDriver.exe",
     "args": "/s /noupdate"
   },
   {
-    "id": 2,
+    "id": "7zip",
     "name": "7-Zip File Manager",
+    "category": "I/O & Utilities",
     "url": "https://www.7-zip.org/a/7z2409-x64.exe",
     "args": "/S"
   },
   {
-    "id": 3,
+    "id": "chrome",
     "name": "Google Chrome",
+    "category": "Browsers",
     "url": "https://dl.google.com/chrome/install/latest/chrome_installer.exe",
     "args": "/silent /install"
-  },
-  {
-    "id": 4,
-    "name": "Visual Studio Code",
-    "url": "https://code.visualstudio.com/sha/download?build=stable&os=win32-x64",
-    "args": "/verysilent /mergetasks=!runcode,addtopath"
   }
 ]
