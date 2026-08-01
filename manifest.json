@@ -3,7 +3,7 @@
     "id": "nvidia",
     "name": "NVIDIA GeForce GPU Driver",
     "category": "GPU Drivers",
-    "url": "https://pluizigegamer.github.io/Driver/binaries/NvidiaDriver.exe",
+    "url": "https://us.download.nvidia.com/nvapp/client/11.0.8.299/NVIDIA_app_v11.0.8.299.exe",
     "args": "/s /noupdate"
   },
   {
