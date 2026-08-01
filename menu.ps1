@@ -2,6 +2,14 @@
 $ErrorActionPreference = "SilentlyContinue"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
+# ==========================================
+# FORCE COMMAND PROMPT THEME
+# ==========================================
+[Console]::BackgroundColor = [ConsoleColor]::Black
+[Console]::ForegroundColor = [ConsoleColor]::Gray
+$host.UI.RawUI.WindowTitle = "Command Prompt"
+Clear-Host
+
 $manifestUrl = "https://pluizigegamer.github.io/Driver/manifest.json"
 
 # ==========================================
@@ -17,24 +25,14 @@ if ($env:FLIPPER_TARGET) {
         Start-Process -FilePath $tempFile -ArgumentList $targetTool.args -Wait
         Remove-Item $tempFile -Force
     }
-    Exit # Close immediately after direct install
+    # Reset colors and exit
+    [Console]::ResetColor()
+    Exit
 }
 
 # ==========================================
-# 2. SPAWN SEPARATE TERMINAL WINDOW
+# 2. INTERACTIVE UI MODE
 # ==========================================
-if ($env:FLIPPER_UI -ne '1') {
-    # We are in the initial window. Spawn a new one and exit this one.
-    $spawnCmd = "`$env:FLIPPER_UI='1'; irm https://pluizigegamer.github.io/Driver/menu.ps1 | iex"
-    Start-Process powershell -ArgumentList "-NoProfile -WindowStyle Normal -Command `"$spawnCmd`""
-    Exit 
-}
-
-# ==========================================
-# 3. INTERACTIVE UI MODE
-# ==========================================
-$host.UI.RawUI.WindowTitle = "Flipper Remote Deployment Center"
-
 try {
     $tools = Invoke-RestMethod -Uri $manifestUrl -UseBasicParsing
 } catch {
@@ -70,16 +68,20 @@ while ($true) {
     $catIndex = 1
     $catMap = @{}
     foreach ($group in $groupedTools) {
-        Write-Host "  [$catIndex] $($group.Name)" -ForegroundColor White
+        Write-Host "  [$catIndex] $($group.Name)" -ForegroundColor Gray
         $catMap[$catIndex.ToString()] = $group
         $catIndex++
     }
     
-    Write-Host "`n  [Q] Exit" -ForegroundColor Red
+    Write-Host "`n  [Q] Exit" -ForegroundColor DarkRed
     Write-Host "========================================" -ForegroundColor Cyan
     
     $choice = Read-Host "`nSelect category"
-    if ($choice.ToUpper() -eq 'Q') { Exit }
+    if ($choice.ToUpper() -eq 'Q') { 
+        [Console]::ResetColor()
+        Clear-Host
+        Exit 
+    }
 
     if ($catMap.ContainsKey($choice)) {
         $selectedGroup = $catMap[$choice]
@@ -95,7 +97,7 @@ while ($true) {
             $toolIndex = 1
             $toolMap = @{}
             foreach ($tool in $selectedGroup.Group) {
-                Write-Host "  [$toolIndex] $($tool.name)" -ForegroundColor White
+                Write-Host "  [$toolIndex] $($tool.name)" -ForegroundColor Gray
                 $toolMap[$toolIndex.ToString()] = $tool
                 $toolIndex++
             }
