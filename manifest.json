@@ -45,14 +45,14 @@
     "name": "Comet installer",
     "category": "Browsers",
     "url": "https://www.perplexity.ai/rest/browser/download?channel=stable&platform=win_x64&mini=1",
-    "args": "/S"
+    "args": "--silent"
   },
   {
     "id": "Opra",
     "name": "Opra GX installer",
     "category": "Browsers",
     "url": "https://net.geo.opera.com/opera_gx/stable/windows?utm_source=roblox_game_slap_battles&utm_medium=pd&utm_campaign=roblox_rewards_fallback&http_referrer=https%3A%2F%2Fwww.opera.com%2Fgx%2Froblox%2Fslap-battles&utm_site=opera_com&utm_lastpage=opera.com%2Fgx&dl_token=71550334",
-    "args": "/S"
+    "args": "/install /silent /launchopera=0 /setdefaultbrowser=0 /allusers=1"
   },    
   {
     "id": "FireFox",
