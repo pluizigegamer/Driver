@@ -21,6 +21,27 @@
     "args": "/S"
   },
   {
+    "id": "Epic Games",
+    "name": "Epic Games installer",
+    "category": "gaming",
+    "url": "https://launcher-public-service-prod06.ol.epicgames.com/launcher/api/installer/download/EpicGamesLauncherInstaller.exe",
+    "args": "/S"
+  },
+  {
+    "id": "Ubisoft",
+    "name": "Ubisoft installer",
+    "category": "gaming",
+    "url": "https://ubi.li/4vxt9",
+    "args": "/S"
+  },
+  {
+    "id": "EA",
+    "name": "EA installer",
+    "category": "gaming",
+    "url": "https://origin-a.akamaihd.net/EA-Desktop-Client-Download/installer-releases/EAappInstaller.exe",
+    "args": "/S"
+  },
+  {
     "id": "chrome",
     "name": "Google Chrome",
     "category": "Browsers",
