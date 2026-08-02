@@ -12,6 +12,12 @@
     "url": "https://github.com/ip7z/7zip/releases/download/26.02/7z2602-x64.exe",
     "args": "/S"
   },
+  { "id": "winrar",
+    "name": "winrar installer",
+    "catagory": "Tools",
+    "url": "https://www.win-rar.com/fileadmin/winrar-versions/winrar/winrar-x64-723.exe"
+    "args": "/S"
+  },
   {
     "id": "Steam",
     "name": "Steam installer",
