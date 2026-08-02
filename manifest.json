@@ -9,37 +9,65 @@
     "id": "7zip",
     "name": "7-Zip File Manager",
     "category": "Tools",
-    "url": "https://pluizigegamer.github.io/Driver/binaries/7z2602-x64.exe",
+    "url": "https://github.com/ip7z/7zip/releases/download/26.02/7z2602-x64.exe",
     "args": "/S"
   },
   {
     "id": "Steam",
     "name": "Steam installer",
-    "category": "gaming",
+    "category": "Gaming",
     "url": "https://cdn.fastly.steamstatic.com/client/installer/SteamSetup.exe",
     "args": "/S"
   },
   {
     "id": "Epic Games",
     "name": "Epic Games installer",
-    "category": "gaming",
+    "category": "Gaming",
     "url": "https://launcher-public-service-prod06.ol.epicgames.com/launcher/api/installer/download/EpicGamesLauncherInstaller.exe",
     "args": "/S"
   },
   {
     "id": "Ubisoft",
     "name": "Ubisoft installer",
-    "category": "gaming",
+    "category": "Gaming",
     "url": "https://ubi.li/4vxt9",
     "args": "/S"
   },
   {
     "id": "EA",
     "name": "EA installer",
-    "category": "gaming",
+    "category": "Gaming",
     "url": "https://origin-a.akamaihd.net/EA-Desktop-Client-Download/installer-releases/EAappInstaller.exe",
     "args": "/S"
   },
+  {
+    "id": "Comet",
+    "name": "Comet installer",
+    "category": "Browsers",
+    "url": "https://www.perplexity.ai/download-comet?referrer=singular_click_id%3De0aa2fbf-831b-4727-b067-9e9e6817529c",
+    "args": "/S"
+  },
+  {
+    "id": "Opra",
+    "name": "Opra GX installer",
+    "category": "Browsers",
+    "url": "https://www.opera.com/computer/thanks?ni=eapgx&os=windows",
+    "args": "/S"
+  },  
+  {
+    "id": "FireFox",
+    "name": "FireFox installer",
+    "category": "Browsers",
+    "url": "https://download.mozilla.org/?product=firefox-stub&os=win&lang=en-US",
+    "args": "/S"
+  },   
+  {
+    "id": "Brave",
+    "name": "Brave installer",
+    "category": "Browsers",
+    "url": "https://laptop-updates.brave.com/download/BRV010?bitness=64",
+    "args": "/S"
+  },    
   {
     "id": "chrome",
     "name": "Google Chrome",
