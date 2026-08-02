@@ -15,7 +15,7 @@
   { "id": "winrar",
     "name": "winrar installer",
     "catagory": "Tools",
-    "url": "https://www.win-rar.com/fileadmin/winrar-versions/winrar/winrar-x64-723.exe"
+    "url": "https://www.win-rar.com/fileadmin/winrar-versions/winrar/winrar-x64-723.exe",
     "args": "/S"
   },
   {
