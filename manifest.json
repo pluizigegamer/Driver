@@ -45,7 +45,7 @@
     "name": "Comet installer",
     "category": "Browsers",
     "url": "https://www.perplexity.ai/rest/browser/download?channel=stable&platform=win_x64&mini=1",
-    "args": "/silent /s"
+    "args": "--silent"
   },
   {
     "id": "Opra",
@@ -58,7 +58,7 @@
     "id": "FireFox",
     "name": "FireFox installer",
     "category": "Browsers",
-    "url": "https://download-installer.cdn.mozilla.net/pub/firefox/releases/153.0.1/win32/en-US/Firefox%20Installer.exe",
+    "url": "https://download.mozilla.org/?product=firefox-latest-ssl&os=win64&lang=en-US",
     "args": "/S"
   },   
   {
@@ -66,7 +66,7 @@
     "name": "Brave installer",
     "category": "Browsers",
     "url": "https://laptop-updates.brave.com/download/BRV010?bitness=64",
-    "args": "/S"
+    "args": "/silent /install"
   },    
   {
     "id": "chrome",
