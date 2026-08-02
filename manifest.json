@@ -14,6 +14,13 @@
     "args": "/S"
   },
   {
+    "id": "Steam",
+    "name": "Steam installer",
+    "category": "gaming",
+    "url": "https://cdn.fastly.steamstatic.com/client/installer/SteamSetup.exe",
+    "args": "/S"
+  },
+  {
     "id": "chrome",
     "name": "Google Chrome",
     "category": "Browsers",
