@@ -1,51 +1,84 @@
 #Requires -RunAsAdministrator
 $ErrorActionPreference = "SilentlyContinue"
-$ProgressPreference = 'SilentlyContinue'
+$ProgressPreference = "SilentlyContinue"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $host.UI.RawUI.WindowTitle = "Flipper Deployment Center"
 
 $manifestUrl = "https://pluizigegamer.github.io/Driver/manifest.json"
 
-# Fetch Manifest
+# ==========================================
+# INSTALLATION ENGINE
+# ==========================================
+function Install-Tool {
+    param($tool)
+    $tempFile = "$env:TEMP\$($tool.id).exe"
+    
+    try {
+        if (Test-Path $tempFile) { Remove-Item $tempFile -Force }
+
+        Write-Host "`n       [*] Downloading: $($tool.name)..." -ForegroundColor Yellow
+        
+        # WebClient with User-Agent header to bypass 403 Forbidden errors
+        $webClient = New-Object System.Net.WebClient
+        $webClient.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        $webClient.DownloadFile($tool.url, $tempFile)
+        
+        # Verify file download (catch HTML 403 error pages)
+        $fileInfo = Get-Item $tempFile
+        if ($fileInfo.Length -lt 100000) {
+            throw "Downloaded file is too small ($($fileInfo.Length) bytes). URL may be invalid, blocked, or returning an error page."
+        }
+
+        Write-Host "       [*] Installing: $($tool.name)..." -ForegroundColor Cyan
+        
+        # Support both silent args and GUI installers (empty args)
+        if ([string]::IsNullOrWhiteSpace($tool.args)) {
+            Start-Process -FilePath $tempFile -Wait
+        } else {
+            Start-Process -FilePath $tempFile -ArgumentList $tool.args -Wait
+        }
+        
+        Remove-Item $tempFile -Force
+        Write-Host "       [+] Successfully finished: $($tool.name)!" -ForegroundColor Green
+    } catch {
+        Write-Host "       [!] Error installing $($tool.name): $_" -ForegroundColor Red
+        if (Test-Path $tempFile) { Remove-Item $tempFile -Force }
+    }
+}
+
+# Fetch Manifest from GitHub Pages
 try {
     $tools = Invoke-RestMethod -Uri $manifestUrl -UseBasicParsing
 } catch {
-    Write-Host "`n[!] Failed to fetch configuration manifest from GitHub." -ForegroundColor Red
+    Write-Host "`n [!] Failed to fetch configuration manifest from GitHub." -ForegroundColor Red
     Start-Sleep -Seconds 3
     Exit
 }
 
 # ==========================================
-# 1. DIRECT FLIPPER INSTALL (NO MENU)
+# 1. DIRECT FLIPPER INSTALL MODE (NO MENU)
 # ==========================================
 if ($env:FLIPPER_TARGET) {
-    Write-Host "`n[*] Direct Install Triggered for: $env:FLIPPER_TARGET" -ForegroundColor Cyan
+    Clear-Host
+    Write-Host "`n [*] Direct Install Triggered for ID: $env:FLIPPER_TARGET" -ForegroundColor Cyan
     $targetTool = $tools | Where-Object { $_.id -eq $env:FLIPPER_TARGET }
+    
     if ($targetTool) {
-        $tempFile = "$env:TEMP\$($targetTool.id).exe"
-        Write-Host "[*] Downloading $($targetTool.name)... (Large files may take a moment)" -ForegroundColor Yellow
-        
-        $webClient = New-Object System.Net.WebClient
-        $webClient.DownloadFile($targetTool.url, $tempFile)
-        
-        Write-Host "[*] Installing $($targetTool.name)..." -ForegroundColor Cyan
-        Start-Process -FilePath $tempFile -ArgumentList $targetTool.args -Wait
-        Remove-Item $tempFile -Force
-        Write-Host "[+] Successfully installed $($targetTool.name)!" -ForegroundColor Green
+        Install-Tool -tool $targetTool
     } else {
-        Write-Host "[!] Driver ID '$env:FLIPPER_TARGET' not found." -ForegroundColor Red
+        Write-Host " [!] Driver ID '$env:FLIPPER_TARGET' not found in manifest." -ForegroundColor Red
     }
     Exit
 }
 
+# ==========================================
+# 2. INTERACTIVE SHOPPING BASKET UI MODE
+# ==========================================
 $groupedTools = $tools | Group-Object category
 $state = "MAIN"
 $selectedGroup = $null
 $basket = [System.Collections.Generic.List[PSCustomObject]]::new()
 
-# ==========================================
-# 2. UNIFIED SINGLE-WINDOW WEB-SHOP MENU
-# ==========================================
 while ($true) {
     Clear-Host
     Write-Host ""
@@ -158,30 +191,16 @@ while ($true) {
                 Write-Host ""
                 Write-Host "       ----------------------------------------------------------------" -ForegroundColor DarkGray
                 Write-Host "       [!] Starting batch download and installation..." -ForegroundColor Cyan
-                Write-Host "       [!] Large downloads may take time. Please wait..." -ForegroundColor Yellow
                 Write-Host "       ----------------------------------------------------------------" -ForegroundColor DarkGray
 
                 foreach ($tool in $basket) {
-                    Write-Host "`n       [*] Downloading: $($tool.name)..." -ForegroundColor Yellow
-                    $tempFile = "$env:TEMP\$($tool.id).exe"
-                    
-                    try {
-                        $webClient = New-Object System.Net.WebClient
-                        $webClient.DownloadFile($tool.url, $tempFile)
-                        
-                        Write-Host "       [*] Installing: $($tool.name)..." -ForegroundColor Cyan
-                        Start-Process -FilePath $tempFile -ArgumentList $tool.args -Wait
-                        Remove-Item $tempFile -Force
-                        Write-Host "       [+] Successfully installed $($tool.name)!" -ForegroundColor Green
-                    } catch {
-                        Write-Host "       [!] Error installing $($tool.name): $_" -ForegroundColor Red
-                    }
+                    Install-Tool -tool $tool
                 }
 
                 Write-Host ""
-                Write-Host "       [+] All basket items processed! Clearing cart." -ForegroundColor Green
+                Write-Host "       [+] All basket items processed! Clearing basket." -ForegroundColor Green
                 $basket.Clear()
-                Write-Host "       Press Enter to return to the menu..." -ForegroundColor Gray
+                Write-Host "       Press Enter to return to main menu..." -ForegroundColor Gray
                 $null = Read-Host
                 $state = "MAIN"
             }
