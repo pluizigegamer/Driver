@@ -58,7 +58,7 @@
     "id": "FireFox",
     "name": "FireFox installer",
     "category": "Browsers",
-    "url": "https://download.mozilla.org/?product=firefox-stub&os=win&lang=en-US",
+    "url": "https://download-installer.cdn.mozilla.net/pub/firefox/releases/153.0.1/win32/en-US/Firefox%20Installer.exe",
     "args": "/S"
   },   
   {
