@@ -1,10 +1,10 @@
 #Requires -RunAsAdministrator
 $ErrorActionPreference = "SilentlyContinue"
+$ProgressPreference = 'SilentlyContinue'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$host.UI.RawUI.WindowTitle = "Flipper Deployment Center"
 
 $manifestUrl = "https://pluizigegamer.github.io/Driver/manifest.json"
-$choiceFile = "$env:TEMP\flipper_choice.txt"
-$batPath = "$env:TEMP\flipper_menu.cmd"
 
 # Fetch Manifest
 try {
@@ -23,8 +23,11 @@ if ($env:FLIPPER_TARGET) {
     $targetTool = $tools | Where-Object { $_.id -eq $env:FLIPPER_TARGET }
     if ($targetTool) {
         $tempFile = "$env:TEMP\$($targetTool.id).exe"
-        Write-Host "[*] Downloading $($targetTool.name)..." -ForegroundColor Yellow
-        Invoke-WebRequest -Uri $targetTool.url -OutFile $tempFile -UseBasicParsing
+        Write-Host "[*] Downloading $($targetTool.name)... (Large files may take a moment)" -ForegroundColor Yellow
+        
+        $webClient = New-Object System.Net.WebClient
+        $webClient.DownloadFile($targetTool.url, $tempFile)
+        
         Write-Host "[*] Installing $($targetTool.name)..." -ForegroundColor Cyan
         Start-Process -FilePath $tempFile -ArgumentList $targetTool.args -Wait
         Remove-Item $tempFile -Force
@@ -41,183 +44,145 @@ $selectedGroup = $null
 $basket = [System.Collections.Generic.List[PSCustomObject]]::new()
 
 # ==========================================
-# 2. DUAL-TERMINAL BASKET ENGINE LOOP
+# 2. UNIFIED SINGLE-WINDOW WEB-SHOP MENU
 # ==========================================
 while ($true) {
-    if (Test-Path $choiceFile) { Remove-Item $choiceFile -Force }
-
-    $batContent = New-Object System.Collections.Generic.List[String]
-    $batContent.Add("@echo off")
-    $batContent.Add("mode con cols=80 lines=29")
-    $batContent.Add("title Administrator: Flipper Deployment Center [Basket Items: $($basket.Count)]")
-    $batContent.Add("color 07")
-    $batContent.Add("cls")
-    $batContent.Add("echo.")
-    $batContent.Add("echo       ----------------------------------------------------------------")
-    $batContent.Add("echo.")
+    Clear-Host
+    Write-Host ""
+    Write-Host "       ----------------------------------------------------------------" -ForegroundColor Gray
+    Write-Host ""
 
     if ($state -eq "MAIN") {
-        $batContent.Add("echo               Driver Categories:")
-        $batContent.Add("echo.")
+        Write-Host "               Driver Categories:" -ForegroundColor White
+        Write-Host ""
         $i = 1
         $catMap = @{}
         foreach ($group in $groupedTools) {
-            $batContent.Add("echo               [$i] $($group.Name)")
+            Write-Host "               [" -NoNewline; Write-Host "$i" -NoNewline -ForegroundColor Green; Write-Host "] $($group.Name)" -ForegroundColor White
             $catMap[$i.ToString()] = $group
             $i++
         }
-        $batContent.Add("echo.")
-        $batContent.Add("echo       ----------------------------------------------------------------")
-        $batContent.Add("echo               Basket: $($basket.Count) driver(s) selected")
-        $batContent.Add("echo       ----------------------------------------------------------------")
-        $batContent.Add("echo               [C] Checkout / View Basket")
-        $batContent.Add("echo               [Q] Quit")
-        $batContent.Add("echo.")
-        $batContent.Add("echo       ----------------------------------------------------------------")
-        $batContent.Add("echo.")
-        $batContent.Add('set /p choice="       Choose option [1..' + ($i-1) + ', C, Q] : "')
-        $batContent.Add('echo %choice% > "' + $choiceFile + '"')
-    } 
+        Write-Host ""
+        Write-Host "       ----------------------------------------------------------------" -ForegroundColor Gray
+        Write-Host "               Basket: $($basket.Count) item(s) selected" -ForegroundColor Yellow
+        Write-Host "       ----------------------------------------------------------------" -ForegroundColor Gray
+        Write-Host "               [C] Checkout / View Basket" -ForegroundColor White
+        Write-Host "               [Q] Quit" -ForegroundColor Red
+        Write-Host ""
+        Write-Host "       ----------------------------------------------------------------" -ForegroundColor Gray
+        Write-Host ""
+        
+        $choice = Read-Host "       Choose option [1..$($i-1), C, Q]"
+        $choice = $choice.Trim().ToUpper()
+
+        if ($choice -eq 'Q') { Exit }
+        elseif ($choice -eq 'C') { $state = "CART" }
+        elseif ($catMap.ContainsKey($choice)) {
+            $selectedGroup = $catMap[$choice]
+            $state = "SUB"
+        }
+    }
     elseif ($state -eq "SUB") {
-        $batContent.Add("echo               Category: $($selectedGroup.Name.ToUpper())")
-        $batContent.Add("echo.")
+        Write-Host "               Category: $($selectedGroup.Name.ToUpper())" -ForegroundColor White
+        Write-Host ""
         $i = 1
+        $toolMap = @{}
         foreach ($tool in $selectedGroup.Group) {
             $inBasket = $basket | Where-Object { $_.id -eq $tool.id }
             $tag = if ($inBasket) { " [IN BASKET]" } else { "" }
-            $batContent.Add("echo               [$i] $($tool.name)$tag")
+            Write-Host "               [" -NoNewline; Write-Host "$i" -NoNewline -ForegroundColor Green; Write-Host "] $($tool.name)$tag" -ForegroundColor White
+            $toolMap[$i.ToString()] = $tool
             $i++
         }
-        $batContent.Add("echo.")
-        $batContent.Add("echo       ----------------------------------------------------------------")
-        $batContent.Add("echo               [B] Back to Categories")
-        $batContent.Add("echo.")
-        $batContent.Add("echo       ----------------------------------------------------------------")
-        $batContent.Add("echo.")
-        $batContent.Add('set /p choice="       Add to basket (e.g. 1 or 1,2) or B : "')
-        $batContent.Add('echo %choice% > "' + $choiceFile + '"')
-    }
-    elseif ($state -eq "CART") {
-        $batContent.Add("echo               Shopping Basket Checkout:")
-        $batContent.Add("echo.")
-        if ($basket.Count -eq 0) {
-            $batContent.Add("echo               Your basket is currently empty!")
-        } else {
-            $ci = 1
-            foreach ($item in $basket) {
-                $batContent.Add("echo               [$ci] $($item.name)")
-                $ci++
-            }
-        }
-        $batContent.Add("echo.")
-        $batContent.Add("echo       ----------------------------------------------------------------")
-        $batContent.Add("echo               [I] Install All Basket Items Now")
-        $batContent.Add("echo               [CLEAR] Clear Basket")
-        $batContent.Add("echo               [B] Back to Categories")
-        $batContent.Add("echo.")
-        $batContent.Add("echo       ----------------------------------------------------------------")
-        $batContent.Add("echo.")
-        $batContent.Add('set /p choice="       Select action [I, CLEAR, B] : "')
-        $batContent.Add('echo %choice% > "' + $choiceFile + '"')
-    }
+        Write-Host ""
+        Write-Host "       ----------------------------------------------------------------" -ForegroundColor Gray
+        Write-Host "               [B] Back to Categories" -ForegroundColor Yellow
+        Write-Host "       ----------------------------------------------------------------" -ForegroundColor Gray
+        Write-Host ""
+        
+        $choice = Read-Host "       Add to basket (e.g. 1 or 1,2) or B"
+        $choice = $choice.Trim().ToUpper()
 
-    Set-Content -Path $batPath -Value ($batContent -join "`r`n") -Encoding Ascii
-
-    # Clear PowerShell window and prepare it to catch actions
-    Clear-Host
-    Write-Host "`n==================================================================" -ForegroundColor DarkGray
-    Write-Host " WORKER TERMINAL (PowerShell) - Download & Install logs show here" -ForegroundColor Yellow
-    Write-Host "==================================================================" -ForegroundColor DarkGray
-    Write-Host "[*] Active Basket Items: $($basket.Count)" -ForegroundColor Cyan
-    Write-Host "[*] Menu running in separate CMD window..." -ForegroundColor DarkGray
-
-    Start-Process cmd.exe -ArgumentList "/c `"$batPath`"" -WindowStyle Normal -Wait
-
-    if (-not (Test-Path $choiceFile)) {
-        Write-Host "`n[*] Menu closed. Exiting..." -ForegroundColor DarkGray
-        Exit
-    }
-
-    $result = (Get-Content $choiceFile).Trim().ToUpper()
-
-    if ($state -eq "MAIN") {
-        if ($result -eq 'Q') {
-            Write-Host "`n[*] Exiting..." -ForegroundColor Cyan
-            Exit
-        }
-        elseif ($result -eq 'C') {
-            $state = "CART"
-        }
-        else {
-            $i = 1
-            $catMap = @{}
-            foreach ($group in $groupedTools) {
-                $catMap[$i.ToString()] = $group
-                $i++
-            }
-            if ($catMap.ContainsKey($result)) {
-                $selectedGroup = $catMap[$result]
-                $state = "SUB"
-            }
-        }
-    } 
-    elseif ($state -eq "SUB") {
-        if ($result -eq 'B') {
+        if ($choice -eq 'B') {
             $state = "MAIN"
         } else {
-            $toolMap = @{}
-            $i = 1
-            foreach ($tool in $selectedGroup.Group) {
-                $toolMap[$i.ToString()] = $tool
-                $i++
-            }
-
-            $selections = $result -split ',' | ForEach-Object { $_.Trim() }
+            $selections = $choice -split ',' | ForEach-Object { $_.Trim() }
             foreach ($sel in $selections) {
                 if ($toolMap.ContainsKey($sel)) {
                     $tool = $toolMap[$sel]
                     if (-not ($basket | Where-Object { $_.id -eq $tool.id })) {
                         $basket.Add($tool)
-                        Write-Host "[+] Added to basket: $($tool.name)" -ForegroundColor Green
+                        Write-Host "       [+] Added to basket: $($tool.name)" -ForegroundColor Green
                     } else {
-                        Write-Host "[*] Already in basket: $($tool.name)" -ForegroundColor DarkYellow
+                        Write-Host "       [*] Already in basket: $($tool.name)" -ForegroundColor DarkYellow
                     }
                 }
             }
+            Start-Sleep -Seconds 1
         }
     }
     elseif ($state -eq "CART") {
-        if ($result -eq 'B') {
+        Write-Host "               Shopping Basket Checkout:" -ForegroundColor White
+        Write-Host ""
+        if ($basket.Count -eq 0) {
+            Write-Host "               Your basket is empty!" -ForegroundColor Yellow
+        } else {
+            $ci = 1
+            foreach ($item in $basket) {
+                Write-Host "               [$ci] $($item.name)" -ForegroundColor White
+                $ci++
+            }
+        }
+        Write-Host ""
+        Write-Host "       ----------------------------------------------------------------" -ForegroundColor Gray
+        Write-Host "               [I] Install All Basket Items Now" -ForegroundColor Green
+        Write-Host "               [CLEAR] Clear Basket" -ForegroundColor Red
+        Write-Host "               [B] Back to Categories" -ForegroundColor Yellow
+        Write-Host "       ----------------------------------------------------------------" -ForegroundColor Gray
+        Write-Host ""
+        
+        $choice = Read-Host "       Select action [I, CLEAR, B]"
+        $choice = $choice.Trim().ToUpper()
+
+        if ($choice -eq 'B') {
             $state = "MAIN"
         }
-        elseif ($result -eq 'CLEAR') {
+        elseif ($choice -eq 'CLEAR') {
             $basket.Clear()
-            Write-Host "[-] Basket cleared." -ForegroundColor Red
+            Write-Host "       [-] Basket cleared." -ForegroundColor Red
+            Start-Sleep -Seconds 1
             $state = "MAIN"
         }
-        elseif ($result -eq 'I') {
+        elseif ($choice -eq 'I') {
             if ($basket.Count -gt 0) {
-                Write-Host "`n------------------------------------------------------------------" -ForegroundColor DarkGray
-                Write-Host "[*] Starting batch installation of $($basket.Count) items..." -ForegroundColor Yellow
-                
+                Write-Host ""
+                Write-Host "       ----------------------------------------------------------------" -ForegroundColor DarkGray
+                Write-Host "       [!] Starting batch download and installation..." -ForegroundColor Cyan
+                Write-Host "       [!] Large downloads may take time. Please wait..." -ForegroundColor Yellow
+                Write-Host "       ----------------------------------------------------------------" -ForegroundColor DarkGray
+
                 foreach ($tool in $basket) {
-                    Write-Host "`n[*] Downloading: $($tool.name)..." -ForegroundColor Yellow
+                    Write-Host "`n       [*] Downloading: $($tool.name)..." -ForegroundColor Yellow
                     $tempFile = "$env:TEMP\$($tool.id).exe"
                     
                     try {
-                        Invoke-WebRequest -Uri $tool.url -OutFile $tempFile -UseBasicParsing
-                        Write-Host "[*] Installing: $($tool.name)..." -ForegroundColor Cyan
+                        $webClient = New-Object System.Net.WebClient
+                        $webClient.DownloadFile($tool.url, $tempFile)
+                        
+                        Write-Host "       [*] Installing: $($tool.name)..." -ForegroundColor Cyan
                         Start-Process -FilePath $tempFile -ArgumentList $tool.args -Wait
                         Remove-Item $tempFile -Force
-                        Write-Host "[+] Successfully installed $($tool.name)!" -ForegroundColor Green
+                        Write-Host "       [+] Successfully installed $($tool.name)!" -ForegroundColor Green
                     } catch {
-                        Write-Host "[!] Error installing $($tool.name): $_" -ForegroundColor Red
+                        Write-Host "       [!] Error installing $($tool.name): $_" -ForegroundColor Red
                     }
                 }
 
-                Write-Host "`n[+] All basket items processed! Clearing cart..." -ForegroundColor Green
+                Write-Host ""
+                Write-Host "       [+] All basket items processed! Clearing cart." -ForegroundColor Green
                 $basket.Clear()
-                Start-Sleep -Seconds 3
+                Write-Host "       Press Enter to return to the menu..." -ForegroundColor Gray
+                $null = Read-Host
                 $state = "MAIN"
             }
         }
