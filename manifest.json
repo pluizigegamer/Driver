@@ -45,7 +45,7 @@
     "name": "Comet installer",
     "category": "Browsers",
     "url": "https://www.perplexity.ai/rest/browser/download?channel=stable&platform=win_x64&mini=1",
-    "args": "--silent"
+    "args": "/silent /s"
   },
   {
     "id": "Opra",
