@@ -34,12 +34,11 @@
     "name": "Spotify installer",
     "category": "Tools",
     "url": "https://download.scdn.co/SpotifySetup.exe",
-    "args": "/S"
   },     
   { "id": "Ollama",
     "name": "Ollama installer",
     "category": "Tools",
-    "url": "https://ollama.com/install.ps1",
+    "url": "irm https://ollama.com/install.ps1 | iex",
     "args": "/S"
   },       
   {
