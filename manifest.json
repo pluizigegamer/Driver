@@ -38,8 +38,7 @@
   { "id": "Ollama",
     "name": "Ollama installer",
     "category": "Tools",
-    "url": "https://ollama.com/download/OllamaSetup.exe",
-    "args": "/S"
+    "url": "https://ollama.com/download/OllamaSetup.exe"
   },       
   {
     "id": "Steam",
