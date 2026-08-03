@@ -33,7 +33,7 @@
   { "id": "Spotify",
     "name": "Spotify installer",
     "category": "Tools",
-    "url": "https://download.scdn.co/SpotifySetup.exe",
+    "url": "https://download.scdn.co/SpotifySetup.exe"
   },     
   { "id": "Ollama",
     "name": "Ollama installer",
