@@ -18,6 +18,30 @@
     "url": "https://www.win-rar.com/fileadmin/winrar-versions/winrar/winrar-x64-723.exe",
     "args": "/S"
   },
+  { "id": "VSCode",
+    "name": "Visual Code installer",
+    "category": "Tools",
+    "url": "https://code.visualstudio.com/sha/download?build=stable&os=win32-x64-user",
+    "args": "/S"
+  }, 
+  { "id": "Notepad++",
+    "name": "Notepad++ installer",
+    "category": "Tools",
+    "url": "https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.9.6.2/npp.8.9.6.2.Installer.x64.exe",
+    "args": "/S"
+  },   
+  { "id": "Spotify",
+    "name": "Spotify installer",
+    "category": "Tools",
+    "url": "https://download.scdn.co/SpotifySetup.exe",
+    "args": "/S"
+  },     
+  { "id": "Ollama",
+    "name": "Ollama installer",
+    "category": "Tools",
+    "url": "https://ollama.com/install.ps1",
+    "args": "/S"
+  },       
   {
     "id": "Steam",
     "name": "Steam installer",
