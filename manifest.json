@@ -34,8 +34,8 @@
     "name": "Ollama installer",
     "category": "Tools",
     "url": "https://ollama.com/download/OllamaSetup.exe",
-    "args": "/silent"
-  },       
+    "args": "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-"
+  },        
   {
     "id": "Steam",
     "name": "Steam installer",
