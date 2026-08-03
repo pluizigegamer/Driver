@@ -29,16 +29,12 @@
     "category": "Tools",
     "url": "https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.9.6.2/npp.8.9.6.2.Installer.x64.exe",
     "args": "/S"
-  },   
-  { "id": "Spotify",
-    "name": "Spotify installer",
-    "category": "Tools",
-    "url": "https://download.scdn.co/SpotifySetup.exe"
-  },     
+  },    
   { "id": "Ollama",
     "name": "Ollama installer",
     "category": "Tools",
-    "url": "https://ollama.com/download/OllamaSetup.exe"
+    "url": "https://ollama.com/download/OllamaSetup.exe",
+    "args": "/silent"
   },       
   {
     "id": "Steam",
