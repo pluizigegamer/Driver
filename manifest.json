@@ -38,7 +38,7 @@
   { "id": "Ollama",
     "name": "Ollama installer",
     "category": "Tools",
-    "url": "irm https://ollama.com/install.ps1 | iex",
+    "url": "https://ollama.com/download/OllamaSetup.exe",
     "args": "/S"
   },       
   {
