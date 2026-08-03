@@ -1,4 +1,5 @@
-Hello👋
+Hello 👋👋👋
+
 I made this script for easy driver and tools installing for if you need to install something.
 
 Please run the script as administrator.
